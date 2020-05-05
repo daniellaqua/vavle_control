@@ -9,6 +9,7 @@
 // constants won't change. They're used here to set pin numbers:
 const int buttonPin = 12;     // the number of the pushbutton pin
 int buttonState = 0;
+int pulsation = 0;
 
 char receivedChar;
 boolean newData = false;
@@ -32,10 +33,19 @@ void loop() {
   
   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
   if (buttonState == HIGH) {
+    if (pulsation == 0){
+      pulsation = 1;
+    } else{
+      pulsation = 0;
+    }  
+    delay(200);
+  }
+  if (pulsation == 1){  
     //open50();
     open100();
     delay(500);
     close_valve();
+    delay(500);
   }
 }
 
