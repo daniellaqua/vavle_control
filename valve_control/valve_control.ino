@@ -7,39 +7,29 @@
 
 
 // constants won't change. They're used here to set pin numbers:
-const int buttonPin = 12;     // the number of the pushbutton pin
+const int buttonPin = D6;     // the number of the pushbutton pin
 int buttonState = 0;
 int pulsation = 0;
 
-char receivedChar;
-boolean newData = false;
+//char receivedChar;
+//boolean newData = false;
 
-String inputString = "";         // a String to hold incoming data
-bool stringComplete = false;  // whether the string is complete
+//String inputString = "";         // a String to hold incoming data
+//bool stringComplete = false;  // whether the string is complete
+
+void ICACHE_RAM_ATTR ISRoutine ();
 
 void setup() {
   // initialize serial:
   Serial1.begin(9600);
   // reserve 200 bytes for the inputString:
-  inputString.reserve(200);
+  //inputString.reserve(200);
 
-  // initialize the pushbutton pin as an input:
-  pinMode(buttonPin, INPUT);
+  pinMode(buttonPin,INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(buttonPin),ISRoutine,FALLING); 
 }
 
 void loop() {
-  // read the state of the pushbutton value:
-  buttonState = digitalRead(buttonPin);
-  
-  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
-  if (buttonState == HIGH) {
-    if (pulsation == 0){
-      pulsation = 1;
-    } else{
-      pulsation = 0;
-    }  
-    delay(200);
-  }
   if (pulsation == 1){  
     //open50();
     open100();
@@ -113,4 +103,14 @@ void open100(){
   Serial1.write(0x00);
   Serial1.write(0x00);
   Serial1.write(0x9E);
+}
+
+void ISRoutine () {
+    if (pulsation == 0){
+      pulsation = 1;
+    } else{
+      pulsation = 0;
+    }  
+    //delay(200);
+
 }
