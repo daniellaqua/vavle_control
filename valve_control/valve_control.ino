@@ -35,69 +35,64 @@ void callback(String topic, byte* message, unsigned int length) {
   Serial.print("Message arrived on topic: ");
   Serial.print(topic);
   Serial.print(". Message: ");
+    
   String messageTemp;
-  String openTemp;
-  String closeTemp;
-      
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
     messageTemp += (char)message[i];
   }
   Serial.println();
 
-//  for (int i = 13; i < 16; i++) {
-//    Serial.print((char)message[i]);
-//    openTemp += (char)message[i];
-//  }
-//   Serial.println();
-//  open_time=openTemp.toInt(); 
-//    for (int i = 30; i < 33; i++) {
-//    Serial.print((char)message[i]);
-//    closeTemp += (char)message[i];
-//    
-//  }
-//  close_time=closeTemp.toInt(); 
-//  Serial.println();
-  
-  //example {"open_time":100,"close_time":300}
-  int firstParameterStart = messageTemp.indexOf(':')+1;
-  int firstParameterEnd = messageTemp.indexOf(',');
-  int secondParameterStart = messageTemp.indexOf(':', firstParameterStart+1)+1;
-  int secondParameterEnd = messageTemp.length()-1;
+  // =========================================================================
+  // Topic: Ventilsteuerung/Pulsation_Maternal
+  // ========================================================================= 
+  if(topic=="Ventilsteuerung/Timing_Maternal"){
+    Serial.println("Timing received: ");
+    String openTemp;
+    String closeTemp;
 
-  for (int i = firstParameterStart; i < firstParameterEnd; i++) {
-    Serial.print((char)message[i]);
-    openTemp += (char)message[i];
-  }  
-  Serial.println();
-  open_time=openTemp.toInt(); 
-  
-  for (int i = secondParameterStart; i < secondParameterEnd; i++) {
-    Serial.print((char)message[i]);
-    closeTemp += (char)message[i];
-    
+    //example string {"open_time":100,"close_time":300}
+    int firstParameterStart = messageTemp.indexOf(':')+1;
+    int firstParameterEnd = messageTemp.indexOf(',');
+    int secondParameterStart = messageTemp.indexOf(':', firstParameterStart+1)+1;
+    int secondParameterEnd = messageTemp.length()-1;
+
+    Serial.print("open time: ");
+    for (int i = firstParameterStart; i < firstParameterEnd; i++) {
+      Serial.print((char)message[i]);
+      openTemp += (char)message[i];
+    }  
+    Serial.println();
+    open_time=openTemp.toInt(); 
+
+    Serial.print("close time: ");
+    for (int i = secondParameterStart; i < secondParameterEnd; i++) {
+      Serial.print((char)message[i]);
+      closeTemp += (char)message[i];
+    }
+    close_time=closeTemp.toInt(); 
+    Serial.println();
   }
-  close_time=closeTemp.toInt(); 
-  Serial.println();
 
-  // Feel free to add more if statements to control more GPIOs with MQTT
-
-//  // If a message is received on the topic room/lamp, you check if the message is either on or off. Turns the lamp GPIO according to the message
-//  if(topic=="Pumpensteuerung/Pumpe_Maternal"){
-//      Serial.print("switching pump: ");
-//      if(messageTemp == "on"){
-//        digitalWrite(pumpMaternal, HIGH);
-//        Serial.print("On");
-//        //client.publish("Pumpensteuerung/Pumpe_Maternal", "on");
-//        client.publish("Pumpensteuerung/Hinweis_Maternal", "Remote start!");
-//      }
-//      else if(messageTemp == "off"){
-//        digitalWrite(pumpMaternal, LOW);
-//        Serial.print("Off");
-//        //client.publish("Pumpensteuerung/Pumpe_Maternal", "off");
-//        client.publish("Pumpensteuerung/Hinweis_Maternal", "Remote stop!");
-//      }
-//  }
+  // =========================================================================
+  // Topic: Ventilsteuerung/Pulsation_Maternal
+  // =========================================================================
+  if(topic=="Ventilsteuerung/Pulsation_Maternal"){
+      
+      Serial.print("pulsation: ");
+      if(messageTemp == "on"){
+        pulsation = 1;
+        Serial.println("Remote: On");
+        //client.publish("Pumpensteuerung/Pumpe_Maternal", "on");
+        client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation start!");
+      }
+      else if(messageTemp == "off"){
+        pulsation = 0;;
+        Serial.println("Remote: Off");
+        //client.publish("Pumpensteuerung/Pumpe_Maternal", "off");
+        client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation stopped!");
+      }
+  }
   Serial.println();
 }
 
@@ -139,13 +134,14 @@ void setup_wifi() {
 void reconnect() {
     while (!client.connected()) {
         Serial.print("Reconnecting...");
-        if (!client.connect("ESP8266Client")) {
+        if (!client.connect("ESP8266ventil")) {
             Serial.print("failed, rc=");
             Serial.print(client.state());
             Serial.println(" retrying in 5 seconds");
             delay(5000);
         }
-        client.subscribe("Ventilsteuerung/Timing_Maternal");
+        client.subscribe("Ventilsteuerung/Timing_Maternal"); // Zeitverhalten
+        client.subscribe("Ventilsteuerung/Pulsation_Maternal"); // Pulsation aktivieren
     }
 }
 
@@ -168,25 +164,6 @@ void loop() {
   }
 }
 
-/*
-  SerialEvent occurs whenever a new data comes in the hardware serial RX. This
-  routine is run between each time loop() runs, so using delay inside loop can
-  delay response. Multiple bytes of data may be available.
-*/
-//void serialEvent() {
-//  while (Serial1.available()) {
-//    // get the new byte:
-//    char inChar = (char)Serial1.read();
-//    // add it to the inputString:
-//    inputString += inChar;
-//    // if the incoming character is a newline, set a flag so the main loop can
-//    // do something about it:
-//    if (inChar == 0x30) {
-//      stringComplete = true;
-//    }
-//  }
-//      delay(1000);
-//}
 
 void close_valve(){
   Serial1.write(0xFF);
@@ -237,8 +214,10 @@ void open100(){
 void ISRoutine () {
     if (pulsation == 0){
       pulsation = 1;
+      client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation start!");
     } else{
       pulsation = 0;
+      client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation stopped!");
     }  
     //delay(200);
 
