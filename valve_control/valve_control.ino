@@ -36,8 +36,8 @@ void callback(String topic, byte* message, unsigned int length) {
   Serial.print(topic);
   Serial.print(". Message: ");
   String messageTemp;
-    String openTemp;
-      String closeTemp;
+  String openTemp;
+  String closeTemp;
       
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
@@ -45,19 +45,41 @@ void callback(String topic, byte* message, unsigned int length) {
   }
   Serial.println();
 
-  for (int i = 13; i < 16; i++) {
+//  for (int i = 13; i < 16; i++) {
+//    Serial.print((char)message[i]);
+//    openTemp += (char)message[i];
+//  }
+//   Serial.println();
+//  open_time=openTemp.toInt(); 
+//    for (int i = 30; i < 33; i++) {
+//    Serial.print((char)message[i]);
+//    closeTemp += (char)message[i];
+//    
+//  }
+//  close_time=closeTemp.toInt(); 
+//  Serial.println();
+  
+  //example {"open_time":100,"close_time":300}
+  int firstParameterStart = messageTemp.indexOf(':')+1;
+  int firstParameterEnd = messageTemp.indexOf(',');
+  int secondParameterStart = messageTemp.indexOf(':', firstParameterStart+1)+1;
+  int secondParameterEnd = messageTemp.length()-1;
+
+  for (int i = firstParameterStart; i < firstParameterEnd; i++) {
     Serial.print((char)message[i]);
     openTemp += (char)message[i];
-  }
-   Serial.println();
+  }  
+  Serial.println();
   open_time=openTemp.toInt(); 
-    for (int i = 30; i < 33; i++) {
+  
+  for (int i = secondParameterStart; i < secondParameterEnd; i++) {
     Serial.print((char)message[i]);
     closeTemp += (char)message[i];
     
   }
   close_time=closeTemp.toInt(); 
- Serial.println();
+  Serial.println();
+
   // Feel free to add more if statements to control more GPIOs with MQTT
 
 //  // If a message is received on the topic room/lamp, you check if the message is either on or off. Turns the lamp GPIO according to the message
