@@ -7,18 +7,21 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
- 
-const char* SSID = "WLAN-314868";
-const char* PSK = "83191081396733674200";
-const char* MQTT_BROKER = "192.168.2.148";
+
+const char* SSID = "pulsoxi_phantom";
+const char* PSK = "NIFPO2018";
+const char* MQTT_BROKER = "192.168.1.2";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-
 // constants won't change. They're used here to set pin numbers:
-const int buttonPin = D6;     // the number of the pushbutton pin
-int buttonState = 0;
+const int ledRed = D0;      // select the pin for the LED
+const int ledGreen = D2;      // select the pin for the LED
+const int buttonMaternal = D6;     // the number of the pushbutton pin
+
+// variables will change:
+int buttonState = 1;
 int pulsation = 0;
 int open_time = 444;
 int close_time = 555;
@@ -77,20 +80,20 @@ void callback(String topic, byte* message, unsigned int length) {
   // =========================================================================
   // Topic: Ventilsteuerung/Pulsation_Maternal
   // =========================================================================
-  if(topic=="Ventilsteuerung/Pulsation_Maternal"){
+  if(topic=="Ventilsteuerung/Remote_Pulsation_Maternal"){
       
       Serial.print("pulsation: ");
       if(messageTemp == "on"){
         pulsation = 1;
         Serial.println("Remote: On");
-        //client.publish("Pumpensteuerung/Pumpe_Maternal", "on");
-        client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation start!");
+        client.publish("Ventilsteuerung/Pulsation_Maternal", "on");
+        client.publish("Ventilsteuerung/Hinweis_Maternal", "Remote start!");
       }
       else if(messageTemp == "off"){
-        pulsation = 0;;
+        pulsation = 0;
         Serial.println("Remote: Off");
-        //client.publish("Pumpensteuerung/Pumpe_Maternal", "off");
-        client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation stopped!");
+        client.publish("Ventilsteuerung/Pulsation_Maternal", "off");
+        client.publish("Ventilsteuerung/Hinweis_Maternal", "Remote stop!");
       }
   }
   Serial.println();
@@ -108,8 +111,13 @@ void setup() {
   client.setServer(MQTT_BROKER, 1883);
   client.setCallback(callback);
 
-  pinMode(buttonPin,INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(buttonPin),ISRoutine,FALLING); 
+  // declare the LED as an OUTPUT:
+  pinMode(ledRed, OUTPUT);
+  pinMode(ledGreen, OUTPUT);
+  // initialize the pushbutton pin as an input:
+  //pinMode(buttonMaternal, INPUT);
+  //attachInterrupt(digitalPinToInterrupt(buttonMaternal),ISRoutine,FALLING);
+  attachInterrupt(buttonMaternal,ISRoutine,FALLING); 
 }
 
 void setup_wifi() {
@@ -119,7 +127,10 @@ void setup_wifi() {
     Serial.println(SSID);
  
     WiFi.begin(SSID, PSK);
- 
+    IPAddress ip(192,168,1,210);   
+    IPAddress gateway(192,168,1,1);   
+    IPAddress subnet(255,255,255,0);  
+    WiFi.config(ip, gateway, subnet);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
@@ -134,14 +145,14 @@ void setup_wifi() {
 void reconnect() {
     while (!client.connected()) {
         Serial.print("Reconnecting...");
-        if (!client.connect("ESP8266ventil")) {
+        if (!client.connect("espVentil")) {
             Serial.print("failed, rc=");
             Serial.print(client.state());
             Serial.println(" retrying in 5 seconds");
             delay(5000);
         }
         client.subscribe("Ventilsteuerung/Timing_Maternal"); // Zeitverhalten
-        client.subscribe("Ventilsteuerung/Pulsation_Maternal"); // Pulsation aktivieren
+        client.subscribe("Ventilsteuerung/Remote_Pulsation_Maternal"); // Pulsation aktivieren
     }
 }
 
@@ -154,13 +165,17 @@ void loop() {
   if (pulsation == 1){  
     //open50();
     
-    open100();
+    open100();      // öffnen zu 100%
+    digitalWrite(ledRed, HIGH);
     Serial.print(open_time);
     delay(open_time);
 
+    close_valve();   // schließen
+    digitalWrite(ledRed, LOW);
     Serial.print(close_time);
-    close_valve();
     delay(close_time);
+
+    digitalWrite(ledGreen, LOW);
   }
 }
 
@@ -211,14 +226,20 @@ void open100(){
   Serial1.write(0x9E);
 }
 
-void ISRoutine () {
+void ISRoutine() {
+    digitalWrite(ledGreen, HIGH);
     if (pulsation == 0){
       pulsation = 1;
-      client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation start!");
+      Serial.println("Remote: On");
+      client.publish("Ventilsteuerung/Pulsation_Maternal", "on");
+      client.publish("Ventilsteuerung/Hinweis_Maternal", "Manual start!");
     } else{
       pulsation = 0;
-      client.publish("Ventilsteuerung/Hinweis_Maternal", "pulsation stopped!");
+      Serial.println("Remote: Off");
+      client.publish("Ventilsteuerung/Pulsation_Maternal", "off");
+      client.publish("Ventilsteuerung/Hinweis_Maternal", "Manual stop!");
     }  
     //delay(200);
+    digitalWrite(ledGreen, LOW);
 
 }
