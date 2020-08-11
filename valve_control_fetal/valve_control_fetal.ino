@@ -78,23 +78,46 @@ void callback(String topic, byte* message, unsigned int length) {
   }
 
   // =========================================================================
-  // Topic: Ventilsteuerung/Pulsation_Fetal
+  // Topic: Ventilsteuerung/Remote_Pulsation_Fetal
   // =========================================================================
   if(topic=="Ventilsteuerung/Remote_Pulsation_Fetal"){
-      
-      Serial.print("pulsation: ");
-      if(messageTemp == "on"){
-        pulsation = 1;
-        Serial.println("Remote: On");
-        client.publish("Ventilsteuerung/Pulsation_Fetal", "on");
-        client.publish("Ventilsteuerung/Hinweis_Fetal", "Remote start!");
-      }
-      else if(messageTemp == "off"){
-        pulsation = 0;
-        Serial.println("Remote: Off");
-        client.publish("Ventilsteuerung/Pulsation_Fetal", "off");
-        client.publish("Ventilsteuerung/Hinweis_Fetal", "Remote stop!");
-      }
+    Serial.print("pulsation: ");
+    if(messageTemp == "on"){
+      pulsation = 1;
+      Serial.println("Remote: On");
+      client.publish("Ventilsteuerung/Pulsation_Fetal", "on");
+      client.publish("Ventilsteuerung/Hinweis_Fetal", "Remote start!");
+    }
+    else if(messageTemp == "off"){
+      pulsation = 0;
+      Serial.println("Remote: Off");
+      client.publish("Ventilsteuerung/Pulsation_Fetal", "off");
+      client.publish("Ventilsteuerung/Hinweis_Fetal", "Remote stop!");
+    }
+  }
+   // =========================================================================
+  // Topic: Ventilsteuerung/Flushing_Fetal
+  // ========================================================================= 
+  if(topic=="Ventilsteuerung/Remote_Flushing_Fetal"){
+    if(pulsation == 1){  // wenn Pulsation noch an, dann wird diese zuerst ausgeschalten
+      pulsation = 0;
+      Serial.println("Pulsation: Remote Off --> Flushing");
+      client.publish("Ventilsteuerung/Pulsation_Fetal", "off");
+    }
+    Serial.print("flushing: ");
+    if(messageTemp == "on"){ // Hier wird entschieden Ob das Ventil auf oder zugemacht wird
+      open100();      // öffnen zu 100%
+      digitalWrite(ledRed, HIGH);
+      Serial.println("On");
+      client.publish("Ventilsteuerung/Flushing_Fetal", "on");
+      client.publish("Ventilsteuerung/Hinweis_Fetal", "Flushing: valve open");
+    } else if(messageTemp == "off"){
+      close_valve();   // schließen
+      digitalWrite(ledRed, LOW);
+      Serial.println("Off");
+      client.publish("Ventilsteuerung/Flushing_Fetal", "off");
+      client.publish("Ventilsteuerung/Hinweis_Fetal", "Flushing: valve closed");
+    }
   }
   Serial.println();
 }
@@ -153,6 +176,7 @@ void reconnect() {
         }
         client.subscribe("Ventilsteuerung/Timing_Fetal"); // Zeitverhalten
         client.subscribe("Ventilsteuerung/Remote_Pulsation_Fetal"); // Pulsation aktivieren
+        client.subscribe("Ventilsteuerung/Remote_Flushing_Fetal");
     }
 }
 

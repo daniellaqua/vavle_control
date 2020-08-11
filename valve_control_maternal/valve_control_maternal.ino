@@ -96,6 +96,30 @@ void callback(String topic, byte* message, unsigned int length) {
         client.publish("Ventilsteuerung/Hinweis_Maternal", "Remote stop!");
       }
   }
+     // =========================================================================
+  // Topic: Ventilsteuerung/Flushing_Maternal
+  // ========================================================================= 
+  if(topic=="Ventilsteuerung/Remote_Flushing_Maternal"){
+    if(pulsation == 1){  // wenn Pulsation noch an, dann wird diese zuerst ausgeschalten
+      pulsation = 0;
+      Serial.println("Pulsation: Remote Off --> Flushing");
+      client.publish("Ventilsteuerung/Pulsation_Maternal", "off");
+    }
+    Serial.print("flushing: ");
+    if(messageTemp == "on"){ // Hier wird entschieden Ob das Ventil auf oder zugemacht wird
+      open100();      // öffnen zu 100%
+      digitalWrite(ledRed, HIGH);
+      Serial.println("On");
+      client.publish("Ventilsteuerung/Flushing_Maternal", "on");
+      client.publish("Ventilsteuerung/Hinweis_Maternal", "Flushing: valve open");
+    } else if(messageTemp == "off"){
+      close_valve();   // schließen
+      digitalWrite(ledRed, LOW);
+      Serial.println("Off");
+      client.publish("Ventilsteuerung/Flushing_Maternal", "off");
+      client.publish("Ventilsteuerung/Hinweis_Maternal", "Flushing: valve closed");
+    }
+  }
   Serial.println();
 }
 
@@ -154,6 +178,7 @@ void reconnect() {
         }
         client.subscribe("Ventilsteuerung/Timing_Maternal"); // Zeitverhalten
         client.subscribe("Ventilsteuerung/Remote_Pulsation_Maternal"); // Pulsation aktivieren
+        client.subscribe("Ventilsteuerung/Remote_Flushing_Maternal");
     }
 }
 
