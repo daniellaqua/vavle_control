@@ -12,8 +12,8 @@ const char* SSID = "pulsoxi_phantom";
 const char* PSK = "NIFPO2018";
 const char* MQTT_BROKER = "192.168.1.2";
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+WiFiClient espValveFetal;
+PubSubClient client(espValveFetal);
 
 // constants won't change. They're used here to set pin numbers:
 const int ledRed = D0;      // select the pin for the LED
@@ -47,7 +47,7 @@ void callback(String topic, byte* message, unsigned int length) {
   Serial.println();
 
   // =========================================================================
-  // Topic: Ventilsteuerung/Pulsation_Fetal
+  // Topic: Ventilsteuerung/Timing_Fetal
   // ========================================================================= 
   if(topic=="Ventilsteuerung/Timing_Fetal"){
     Serial.println("Timing received: ");
@@ -115,7 +115,7 @@ void setup() {
   pinMode(ledRed, OUTPUT);
   pinMode(ledGreen, OUTPUT);
   // initialize the pushbutton pin as an input:
-  //pinMode(buttonFetal, INPUT);
+  pinMode(buttonFetal, INPUT);
   //attachInterrupt(digitalPinToInterrupt(buttonFetal),ISRoutine,FALLING);
   attachInterrupt(buttonFetal,ISRoutine,FALLING); 
 }
@@ -127,7 +127,7 @@ void setup_wifi() {
     Serial.println(SSID);
  
     WiFi.begin(SSID, PSK);
-    IPAddress ip(192,168,1,211);   
+    IPAddress ip(192,168,1,111);   
     IPAddress gateway(192,168,1,1);   
     IPAddress subnet(255,255,255,0);  
     WiFi.config(ip, gateway, subnet);
@@ -145,7 +145,7 @@ void setup_wifi() {
 void reconnect() {
     while (!client.connected()) {
         Serial.print("Reconnecting...");
-        if (!client.connect("espVentil")) {
+        if (!client.connect("espValveFetal")) {
             Serial.print("failed, rc=");
             Serial.print(client.state());
             Serial.println(" retrying in 5 seconds");
@@ -230,12 +230,12 @@ void ISRoutine() {
     digitalWrite(ledGreen, HIGH);
     if (pulsation == 0){
       pulsation = 1;
-      Serial.println("Remote: On");
+      Serial.println("Manual: On");
       client.publish("Ventilsteuerung/Pulsation_Fetal", "on");
       client.publish("Ventilsteuerung/Hinweis_Fetal", "Manual start!");
     } else{
       pulsation = 0;
-      Serial.println("Remote: Off");
+      Serial.println("Manual: Off");
       client.publish("Ventilsteuerung/Pulsation_Fetal", "off");
       client.publish("Ventilsteuerung/Hinweis_Fetal", "Manual stop!");
     }  
